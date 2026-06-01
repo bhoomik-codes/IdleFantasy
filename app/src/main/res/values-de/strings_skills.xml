@@ -20,7 +20,7 @@
     <string name="skill_smithing_name">Schmieden</string>
     <string name="skill_smithing_desc">Schmelze Erze zu Barren und schmiede mächtige Metallausrüstung.</string>
     <string name="skill_cooking_name">Kochen</string>
-    <string name="skill_cooking_desc">Verarbeite rohe Zutaten zu Speisen, die im Kampf die HP wiederherstellen.</string>
+    <string name="skill_cooking_desc">Verarbeite rohe Zutaten zu Speisen, die im Kampf LP wiederherstellen.</string>
     <string name="skill_fletching_name">Herstellen</string>
     <string name="skill_fletching_desc">Stelle Pfeil und Bogen aus Holzstämmen und Metallteilen her.</string>
     <string name="skill_crafting_name">Fertigen</string>

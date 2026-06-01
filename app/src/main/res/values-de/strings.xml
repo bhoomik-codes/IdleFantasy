@@ -45,7 +45,7 @@
     <string name="label_level">Level</string>
     <string name="label_xp">XP</string>
     <string name="label_coins">Münzen</string>
-    <string name="label_hp">HP</string>
+    <string name="label_hp">LP</string>
     <string name="label_attack">Angriff</string>
     <string name="label_strength">Stärke</string>
     <string name="label_defense">Verteidigung</string>
@@ -382,7 +382,7 @@
     <string name="combat_atk">ATK</string>
     <string name="combat_str">STR</string>
     <string name="combat_def">DEF</string>
-    <string name="combat_heals_hp">%1$d HP geheilt</string>
+    <string name="combat_heals_hp">%1$d LP geheilt</string>
     <string name="combat_defeated_so_far">bisher besiegt.</string>
     <string name="combat_fighting">Kämpfen…</string>
     <string name="combat_log_you_hit">Du hast getroffen</string>
@@ -421,7 +421,7 @@
     <string name="profile_gathering_tools">Werkzeuge</string>
     <string name="profile_food_dungeon">Essen (Dungeon)</string>
     <string name="profile_no_food">Keine gekochten Lebensmittel im Inventar</string>
-    <string name="profile_food_desc">×%1$d  •  heilt %2$d HP</string>
+    <string name="profile_food_desc">×%1$d  •  heilt %2$d LP</string>
     <string name="profile_choose_slot">%1$s auswählen</string>
     <string name="profile_no_items">Keine passenden Artikel im Inventar</string>
     <string name="profile_stat_atk">Atk</string>
