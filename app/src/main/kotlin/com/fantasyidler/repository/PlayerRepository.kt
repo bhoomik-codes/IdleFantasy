@@ -45,8 +45,26 @@ class PlayerRepository @Inject constructor(
     }
 
     /** Returns the player, creating a default profile if none exists. */
-    suspend fun getOrCreatePlayer(): Player =
-        playerDao.getPlayer() ?: createDefaultPlayer().also { playerDao.upsert(it) }
+    suspend fun getOrCreatePlayer(): Player {
+        val player = playerDao.getPlayer() ?: createDefaultPlayer().also { playerDao.upsert(it) }
+        return if (player.skillXp.contains("\"hp\":")) migrateHpKey(player) else player
+    }
+
+    private suspend fun migrateHpKey(player: Player): Player {
+        val xpMap: MutableMap<String, Long> = json.decodeFromString(player.skillXp)
+        val hpXp = xpMap.remove("hp") ?: return player
+        val levels: MutableMap<String, Int> = json.decodeFromString(player.skillLevels)
+        levels.remove("hp")
+        val newHpXp = (xpMap[Skills.HITPOINTS] ?: 0L) + hpXp
+        xpMap[Skills.HITPOINTS] = newHpXp
+        levels[Skills.HITPOINTS] = XpTable.levelForXp(newHpXp)
+        val migrated = player.copy(
+            skillXp     = json.encode<Map<String, Long>>(xpMap),
+            skillLevels = json.encode<Map<String, Int>>(levels),
+        )
+        playerDao.upsert(migrated)
+        return migrated
+    }
 
     suspend fun getSkillLevels(): Map<String, Int> =
         json.decodeFromString(getOrCreatePlayer().skillLevels)
@@ -135,6 +153,44 @@ class PlayerRepository @Inject constructor(
             skillLevels = json.encode<Map<String, Int>>(levels),
             skillXp     = json.encode<Map<String, Long>>(xpMap),
         ))
+    }
+
+    data class BuryBoneResult(val xpGained: Long, val awardedCape: String?)
+
+    /**
+     * Atomically consume one [boneKey] from inventory and award [xpToAward] prayer XP.
+     * Returns a result with xpGained=0 if the bone is not in inventory.
+     */
+    suspend fun buryBoneAtomic(boneKey: String, xpToAward: Long): BuryBoneResult {
+        val player    = getOrCreatePlayer()
+        val inventory: MutableMap<String, Int> = json.decodeFromString(player.inventory)
+        if ((inventory[boneKey] ?: 0) <= 0) return BuryBoneResult(0L, null)
+
+        val newQty = (inventory[boneKey] ?: 0) - 1
+        if (newQty <= 0) inventory.remove(boneKey) else inventory[boneKey] = newQty
+
+        val levels: MutableMap<String, Int> = json.decodeFromString(player.skillLevels)
+        val xpMap:  MutableMap<String, Long> = json.decodeFromString(player.skillXp)
+        val oldLevel = XpTable.levelForXp(xpMap[Skills.PRAYER] ?: 0L)
+        val newXp    = (xpMap[Skills.PRAYER] ?: 0L) + xpToAward
+        xpMap[Skills.PRAYER]  = newXp
+        levels[Skills.PRAYER] = XpTable.levelForXp(newXp)
+
+        var awardedCape: String? = null
+        if (oldLevel < 99 && levels[Skills.PRAYER]!! >= 99) {
+            val capeKey = capeKeyForSkill(Skills.PRAYER)
+            if (capeKey != null && !inventory.containsKey(capeKey)) {
+                inventory[capeKey] = 1
+                awardedCape = capeKey
+            }
+        }
+
+        playerDao.upsert(player.copy(
+            inventory   = json.encode<Map<String, Int>>(inventory),
+            skillLevels = json.encode<Map<String, Int>>(levels),
+            skillXp     = json.encode<Map<String, Long>>(xpMap),
+        ))
+        return BuryBoneResult(xpToAward, awardedCape)
     }
 
     /**
@@ -410,8 +466,8 @@ class PlayerRepository @Inject constructor(
      * Activates or extends the 2× XP boost for [durationMs] × [qty] milliseconds.
      * Deducts [XP_BOOST_COST] × [qty] coins. Returns false if not enough coins.
      */
-    suspend fun activateXpBoost(durationMs: Long, qty: Int = 1): Boolean {
-        val totalCost = XP_BOOST_COST * qty
+    suspend fun activateXpBoost(durationMs: Long, qty: Int = 1, costEach: Long = XP_BOOST_COST): Boolean {
+        val totalCost = costEach * qty
         val player    = getOrCreatePlayer()
         if (player.coins < totalCost) return false
 
