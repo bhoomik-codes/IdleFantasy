@@ -54,7 +54,7 @@ def commit_and_push(wiki_dir: Path):
 
 def write_pages(out: Path, pages: dict[str, str]):
     for filename, content in pages.items():
-        (out / filename).write_text(content)
+        (out / filename).write_text(content, encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -74,7 +74,13 @@ def run_update():
 
 
 def run_write(out: Path, page_list: str | list[str]):
+    # Create page content
     pages = get_pages()
+    # Reset output directory
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+    # Write all pages or just specific pages
     if page_list == "all":
         write_pages(out, pages)
     else:

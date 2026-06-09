@@ -90,3 +90,32 @@ Example pattern (see `gen_agility()`):
 3. Implement `gen_<page_id>()` and any template file.
 4. Add `"page_id": gen_<page_id>()` to `_get_page_to_content()`.
 5. Run `python -m src validity` and fix any reported errors or warnings.
+
+## Section templates for repeated content
+
+For pages made up of many similar but complex blocks (one per boss, dungeon, shop category, etc.), split the work across two templates:
+
+1. **Page template** — static intro text and a single placeholder for all sections (e.g. `{boss_sections}` in `combat/bosses.md`).
+2. **Section template** — the layout for one item, with placeholders filled per entry (e.g. `combat/boss_section.md`).
+
+Put reusable parsing logic (loot rows, spawn tables, reward strings) in `_helper()` functions alongside the other helpers in `pages.py`, and keep templates focused on markdown structure.
+
+**When to use a section template**
+
+- The same markdown layout is repeated many times on one page.
+- A section has several placeholders or non-trivial formatting.
+
+**When to keep it inline**
+
+- Sections are very simple — e.g. a heading plus a table (see `gen_quests()`).
+
+Existing examples:
+
+| Page     | Page template              | Section template              |
+|----------|----------------------------|-------------------------------|
+| Bosses   | `combat/bosses.md`         | `combat/boss_section.md`      |
+| Dungeons | `combat/dungeons.md`       | `combat/dungeon_section.md`   |
+| Enemies  | `combat/enemies.md`        | `combat/enemy_section.md`     |
+| Shop     | `town/shop.md`             | `town/shop_section.md`        |
+
+Templates should be organised into subfolders that match the wiki hierarchy (e.g. `combat/`, `town/`, `miscellaneous/`).
