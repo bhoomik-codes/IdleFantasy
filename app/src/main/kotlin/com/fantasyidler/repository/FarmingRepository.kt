@@ -162,6 +162,11 @@ class FarmingRepository @Inject constructor(
         val patch = patchDao.getPatch(patchNumber)
         val plantingXp = patch?.cropType?.let { gameData.crops[it]?.plantingXp?.toLong() } ?: 0L
         if (plantingXp > 0) playerRepo.deductSkillXp(Skills.FARMING, plantingXp)
+        if (patch?.cropType == "magic_bean") {
+            playerRepo.addItem("magic_bean", 1)
+            val flags = playerRepo.getFlags()
+            playerRepo.updateFlags(flags.copy(magicBeanPlanted = false))
+        }
         cancelAlarm(patchNumber)
         patchDao.clear(patchNumber)
     }

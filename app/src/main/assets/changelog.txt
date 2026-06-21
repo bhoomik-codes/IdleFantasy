@@ -1,3 +1,6 @@
+v1.9.12
+• Fix clearing a magic bean farming patch consuming the seed permanently; the seed is now returned and can be replanted
+• Fix bones quantity field in the prayer session sheet being too narrow to display large numbers
 v1.9.11
 • Fix agility prestige not reducing session time when starting a new session directly from the Skills screen
 • Fix worker efficiency multiplier incorrectly scaling crafting output (bars, planks, etc.) — efficiency now only applies to gathering
