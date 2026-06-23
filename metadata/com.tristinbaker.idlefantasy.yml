@@ -629,9 +629,16 @@ Builds:
     gradle:
       - yes
 
+  - versionName: '1.9.14'
+    versionCode: 90
+    commit: db348f93d076489f9d25a5703b5fa0298114e87f
+    subdir: app
+    gradle:
+      - yes
+
 AllowedAPKSigningKeys: 99a980a934cb0149bfbdd5f4358471ffe69302e0467bae4d8574d4feeda34010
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.9.13
-CurrentVersionCode: 89
+CurrentVersion: 1.9.14
+CurrentVersionCode: 90
