@@ -49,6 +49,7 @@ data class SlayerUiState(
     val unlockedDungeons: Set<String> = emptySet(),
     val inventory: Map<String, Int> = emptyMap(),
     val skillLevels: Map<String, Int> = emptyMap(),
+    val activeWeaponSlot: String? = null,
     /** Non-null when the player has tapped Buy on a lamp and needs to choose a skill. */
     val pendingLamp: PendingLamp? = null,
     val snackbarMessage: String? = null,
@@ -126,6 +127,7 @@ class SlayerViewModel @Inject constructor(
                 unlockedDungeons      = unlockedDungeons,
                 inventory             = inventory,
                 skillLevels           = levels,
+                activeWeaponSlot      = flags.activeWeaponSlot,
                 slayerEquippedWeapons = equippedWeapons,
                 foretelledTasks       = flags.foretelledTasks,
                 nextForetelCostUnits  = nextForetelCost,
@@ -215,7 +217,8 @@ class SlayerViewModel @Inject constructor(
             ?: state.taskDungeonKeys.firstOrNull()
             ?: return
         if (state.slayerEquippedWeapons.size > 1) {
-            _extra.update { it.copy(pendingSlayerDungeonKey = dungeonKey, slayerSelectedWeaponSlot = null) }
+            val preselect = state.activeWeaponSlot ?: state.slayerEquippedWeapons.keys.firstOrNull()
+            _extra.update { it.copy(pendingSlayerDungeonKey = dungeonKey, slayerSelectedWeaponSlot = preselect) }
         } else {
             doQueueTaskDungeon(dungeonKey, weaponSlot = null)
         }
@@ -280,7 +283,8 @@ class SlayerViewModel @Inject constructor(
                 .maxByOrNull { (k, _) -> playerRepo.getFlags().dungeonRuns[k] ?: 0 }
                 ?.key ?: return@launch
             if (state.slayerEquippedWeapons.size > 1) {
-                _extra.update { it.copy(pendingSlayerDungeonKey = dungeonKey, slayerSelectedWeaponSlot = null) }
+                val preselect = state.activeWeaponSlot ?: state.slayerEquippedWeapons.keys.firstOrNull()
+                _extra.update { it.copy(pendingSlayerDungeonKey = dungeonKey, slayerSelectedWeaponSlot = preselect) }
             } else {
                 doQueueTaskDungeon(dungeonKey, weaponSlot = null)
             }

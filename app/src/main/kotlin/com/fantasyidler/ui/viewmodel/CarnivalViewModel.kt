@@ -429,7 +429,15 @@ class CarnivalViewModel @Inject constructor(
     fun advanceShellGame() {
         val s = _extra.value.shellGameState
         if (s !is ActiveGameState.ShellGameShowing) return
-        _extra.update { it.copy(shellGameState = ActiveGameState.ShellGamePicking(s.cupCount, s.gemPos)) }
+        val positions = (0 until s.cupCount).toMutableList()
+        val swaps = s.cupCount * 3 + Random.nextInt(s.cupCount + 1)
+        repeat(swaps) {
+            val i = Random.nextInt(positions.size)
+            val j = Random.nextInt(positions.size)
+            val tmp = positions[i]; positions[i] = positions[j]; positions[j] = tmp
+        }
+        val newGemPos = positions.indexOf(s.gemPos)
+        _extra.update { it.copy(shellGameState = ActiveGameState.ShellGamePicking(s.cupCount, newGemPos)) }
     }
 
     fun submitShellGuess(pickedPos: Int) {

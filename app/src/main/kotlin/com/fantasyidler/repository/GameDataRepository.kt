@@ -325,8 +325,8 @@ class GameDataRepository @Inject constructor(
             addAll(runes.keys)
             // Quest collect targets should not be auto-sold
             quests.values.filter { it.type == "collect" }.forEach { add(it.target) }
-            // Herblore: protect both ingredients (including junk secondaries) and potions
-            herbloreRecipes.forEach { (key, r) -> add(key); addAll(r.materials.keys) }
+            // Herblore: protect both ingredients (including junk secondaries), potions, and enhanced variants
+            herbloreRecipes.forEach { (key, r) -> add(key); add("enhanced_$key"); addAll(r.materials.keys) }
             // Farming: protect seeds so they aren't sold as junk
             addAll(crops.values.map { it.seedName })
             // Marketplace items not in equipment.json

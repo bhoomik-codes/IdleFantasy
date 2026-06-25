@@ -12,6 +12,7 @@ import com.fantasyidler.data.json.HerbloreRecipe
 import com.fantasyidler.data.model.QuestProgress
 import com.fantasyidler.repository.DailyQuestRepository
 import com.fantasyidler.repository.GameDataRepository
+import com.fantasyidler.repository.GuildRepository
 import com.fantasyidler.repository.PlayerRepository
 import com.fantasyidler.repository.QuestRepository
 import com.fantasyidler.repository.SessionRepository
@@ -136,6 +137,7 @@ class CraftingViewModel @Inject constructor(
     private val questRepo: QuestRepository,
     private val dailyQuestRepo: DailyQuestRepository,
     private val weeklyQuestRepo: WeeklyQuestRepository,
+    private val guildRepo: GuildRepository,
     private val json: Json,
 ) : ViewModel() {
 
@@ -447,7 +449,7 @@ class CraftingViewModel @Inject constructor(
             val progress = prog?.progress ?: 0
             val matches = when (quest.type) {
                 "craft"     -> quest.target == recipe.outputKey
-                "craft_any" -> quest.skill  == recipe.skillName
+                "craft_any" -> quest.skill == recipe.skillName && craftAnyTargetMatches(quest.target, recipe)
                 else        -> false
             }
             if (matches) {
@@ -460,10 +462,14 @@ class CraftingViewModel @Inject constructor(
         }
 
         // Guild progression quests (guild_quests.json, tracked in same quest_progress table)
+        val completedIds = progressById.entries.filter { it.value.completed }.map { it.key }.toSet()
         for ((id, quest) in gameData.guildQuests) {
             if (quest.type != "craft" && quest.type != "craft_any") continue
             val prog = progressById[id]
             if (prog?.completed == true) continue
+            // Skip if the player's current guild level is below the quest's requirement
+            val rep = flags.guildReputation[quest.guild] ?: 0L
+            if (guildRepo.guildLevel(quest.guild, rep, completedIds) < quest.guildLevelRequired) continue
             val progress = prog?.progress ?: 0
             val matches = when (quest.type) {
                 "craft"     -> quest.target == recipe.outputKey
@@ -471,7 +477,8 @@ class CraftingViewModel @Inject constructor(
                 else        -> false
             }
             if (matches) {
-                val remaining = quest.amount - progress
+                val effectiveAmount = guildRepo.effectiveQuestAmountFromFlags(quest, flags)
+                val remaining = effectiveAmount - progress
                 if (remaining > 0)
                     fills += QuestFillSuggestion(quest.name, ceilDiv(remaining, recipe.outputQty))
             }
@@ -523,6 +530,11 @@ class CraftingViewModel @Inject constructor(
         }
 
         return fills.sortedBy { it.qty }
+    }
+
+    private fun craftAnyTargetMatches(target: String, recipe: CraftableRecipe): Boolean = when (target) {
+        "any_fish" -> recipe.materials.keys.any { it in gameData.fish.keys }
+        else       -> true
     }
 
     private fun ceilDiv(a: Int, b: Int) = if (b <= 0) a else (a + b - 1) / b

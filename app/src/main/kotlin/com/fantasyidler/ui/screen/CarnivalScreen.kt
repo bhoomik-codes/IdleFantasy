@@ -56,7 +56,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -415,6 +417,7 @@ private fun RingTossCard(gameState: ActiveGameState, difficulty: Difficulty, vie
                 }
             }
             is ActiveGameState.TimingActive -> {
+                val haptic = LocalHapticFeedback.current
                 var position by remember { mutableFloatStateOf(0f) }
                 var direction by remember { mutableIntStateOf(1) }
                 LaunchedEffect(Unit) {
@@ -450,7 +453,7 @@ private fun RingTossCard(gameState: ActiveGameState, difficulty: Difficulty, vie
                         Text(hint, style = MaterialTheme.typography.bodySmall, color = GoldPrimary)
                     }
                     Button(
-                        onClick  = { viewModel.submitRingToss(position) },
+                        onClick  = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.submitRingToss(position) },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(stringResource(R.string.carnival_throw))
@@ -475,6 +478,7 @@ private fun HammerStrikeCard(gameState: ActiveGameState, difficulty: Difficulty,
                 }
             }
             is ActiveGameState.TimingActive -> {
+                val haptic = LocalHapticFeedback.current
                 var power by remember { mutableFloatStateOf(0f) }
                 var rising by remember { mutableStateOf(true) }
                 LaunchedEffect(Unit) {
@@ -512,7 +516,7 @@ private fun HammerStrikeCard(gameState: ActiveGameState, difficulty: Difficulty,
                         Text(stringResource(R.string.carnival_hammer_perfect_zone), style = MaterialTheme.typography.bodySmall, color = Color(0xFFF44336))
                     }
                     Button(
-                        onClick  = { viewModel.submitHammerStrike(power) },
+                        onClick  = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.submitHammerStrike(power) },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(stringResource(R.string.carnival_strike))
@@ -612,6 +616,7 @@ private fun PotionSequenceCard(gameState: ActiveGameState, difficulty: Difficult
 
 @Composable
 private fun PotionButton(colorIdx: Int, onClick: () -> Unit) {
+    val haptic = LocalHapticFeedback.current
     Box(
         modifier = Modifier
             .size(56.dp)
@@ -621,7 +626,7 @@ private fun PotionButton(colorIdx: Int, onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Surface(
-            onClick = onClick,
+            onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onClick() },
             color   = Color.Transparent,
             modifier = Modifier.fillMaxSize(),
         ) {
@@ -655,6 +660,7 @@ private fun ItemAppraisalCard(
                 }
             }
             is ActiveGameState.AppraisalPlaying -> {
+                val haptic = LocalHapticFeedback.current
                 if (difficulty == Difficulty.HARD && quad != null) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
@@ -665,18 +671,18 @@ private fun ItemAppraisalCard(
                             modifier   = Modifier.fillMaxWidth(),
                         )
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { viewModel.submitAppraisalAnswer(0) }, modifier = Modifier.weight(1f)) {
+                            OutlinedButton(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.submitAppraisalAnswer(0) }, modifier = Modifier.weight(1f)) {
                                 Text(quad.items[0], textAlign = TextAlign.Center)
                             }
-                            OutlinedButton(onClick = { viewModel.submitAppraisalAnswer(1) }, modifier = Modifier.weight(1f)) {
+                            OutlinedButton(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.submitAppraisalAnswer(1) }, modifier = Modifier.weight(1f)) {
                                 Text(quad.items[1], textAlign = TextAlign.Center)
                             }
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { viewModel.submitAppraisalAnswer(2) }, modifier = Modifier.weight(1f)) {
+                            OutlinedButton(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.submitAppraisalAnswer(2) }, modifier = Modifier.weight(1f)) {
                                 Text(quad.items[2], textAlign = TextAlign.Center)
                             }
-                            OutlinedButton(onClick = { viewModel.submitAppraisalAnswer(3) }, modifier = Modifier.weight(1f)) {
+                            OutlinedButton(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.submitAppraisalAnswer(3) }, modifier = Modifier.weight(1f)) {
                                 Text(quad.items[3], textAlign = TextAlign.Center)
                             }
                         }
@@ -691,10 +697,10 @@ private fun ItemAppraisalCard(
                             modifier   = Modifier.fillMaxWidth(),
                         )
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { viewModel.submitAppraisalAnswer(0) }, modifier = Modifier.weight(1f)) {
+                            OutlinedButton(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.submitAppraisalAnswer(0) }, modifier = Modifier.weight(1f)) {
                                 Text(pair.itemA, textAlign = TextAlign.Center)
                             }
-                            OutlinedButton(onClick = { viewModel.submitAppraisalAnswer(1) }, modifier = Modifier.weight(1f)) {
+                            OutlinedButton(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.submitAppraisalAnswer(1) }, modifier = Modifier.weight(1f)) {
                                 Text(pair.itemB, textAlign = TextAlign.Center)
                             }
                         }
@@ -755,6 +761,7 @@ private fun ShellGameCard(gameState: ActiveGameState, difficulty: Difficulty, vi
             }
             is ActiveGameState.ShellGamePicking -> {
                 val cupCount = gameState.cupCount
+                val haptic = LocalHapticFeedback.current
                 Column(
                     modifier            = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -768,7 +775,7 @@ private fun ShellGameCard(gameState: ActiveGameState, difficulty: Difficulty, vi
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         (0 until cupCount).forEach { i ->
                             OutlinedButton(
-                                onClick  = { viewModel.submitShellGuess(i) },
+                                onClick  = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.submitShellGuess(i) },
                                 modifier = Modifier.size(56.dp).padding(0.dp),
                             ) {
                                 Text(
@@ -801,6 +808,7 @@ private fun HigherOrLowerCard(gameState: ActiveGameState, difficulty: Difficulty
             is ActiveGameState.HigherOrLowerPlaying -> {
                 val totalRounds = gameState.numbers.size - 1
                 val current = gameState.numbers[gameState.currentIdx]
+                val haptic = LocalHapticFeedback.current
                 Column(
                     modifier            = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -824,13 +832,13 @@ private fun HigherOrLowerCard(gameState: ActiveGameState, difficulty: Difficulty
                     )
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
-                            onClick  = { viewModel.submitHigherOrLower(true) },
+                            onClick  = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.submitHigherOrLower(true) },
                             modifier = Modifier.weight(1f),
                         ) {
                             Text(stringResource(R.string.carnival_higher_lower_btn_higher))
                         }
                         OutlinedButton(
-                            onClick  = { viewModel.submitHigherOrLower(false) },
+                            onClick  = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.submitHigherOrLower(false) },
                             modifier = Modifier.weight(1f),
                         ) {
                             Text(stringResource(R.string.carnival_higher_lower_btn_lower))

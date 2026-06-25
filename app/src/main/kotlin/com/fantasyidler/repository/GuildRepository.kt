@@ -449,20 +449,81 @@ class GuildRepository @Inject constructor(
             .filter { it.completed }
             .map { it.questId }
             .toSet()
-        return if (shouldRefreshGuildDailies(flags.guildDailyGeneratedAt) || hasNewlyUnlockedGuild(flags, completedQuestIds)) {
-            val skillLevels = playerRepo.getSkillLevels()
-            val refreshed = buildRefreshedGuildDailyFlags(flags, completedQuestIds, skillLevels)
-            playerRepo.updateFlags(refreshed)
-            refreshed
-        } else flags
+        val skillLevels by lazy { runCatching { playerRepo.getSkillLevels() }.getOrDefault(emptyMap()) }
+        return when {
+            shouldRefreshGuildDailies(flags.guildDailyGeneratedAt) -> {
+                val refreshed = buildRefreshedGuildDailyFlags(flags, completedQuestIds, skillLevels)
+                playerRepo.updateFlags(refreshed)
+                refreshed
+            }
+            hasNewlyUnlockedGuild(flags, completedQuestIds) -> {
+                val patched = patchMissingGuildDailies(flags, completedQuestIds, skillLevels)
+                playerRepo.updateFlags(patched)
+                patched
+            }
+            else -> flags
+        }
     }
 
     private fun hasNewlyUnlockedGuild(flags: PlayerFlags, completedQuestIds: Set<String>): Boolean {
         val pool = gameData.guildDailyPool.associateBy { it.id }
         return ALL_GUILDS.any { guild ->
-            (flags.guildReputation[guild] ?: 0L) > 0L &&
-                flags.guildDailyIds.none { pool[it]?.guild == guild }
+            val rep = flags.guildReputation[guild] ?: 0L
+            if (rep == 0L) return@any false
+            if (flags.guildDailyIds.any { pool[it]?.guild == guild }) return@any false
+            // Only trigger if there is at least one eligible template — avoids infinite loops
+            // when a guild has rep but no templates in its current level range.
+            val level = maxOf(guildLevel(guild, rep, completedQuestIds), 1)
+            gameData.guildDailyPool.any { it.guild == guild && level >= it.guildLevelMin && level <= it.guildLevelMax }
         }
+    }
+
+    /** Appends daily IDs for guilds that have rep but no current daily, without resetting existing progress. */
+    private fun patchMissingGuildDailies(flags: PlayerFlags, completedQuestIds: Set<String>, skillLevels: Map<String, Int>): PlayerFlags {
+        val today = Calendar.getInstance().let {
+            it.get(Calendar.YEAR) * 10000 + it.get(Calendar.MONTH) * 100 + it.get(Calendar.DAY_OF_MONTH)
+        }
+        val rng = Random(today.toLong())
+        val pool = gameData.guildDailyPool.associateBy { it.id }
+        val guildsWithDailies = flags.guildDailyIds.mapNotNull { pool[it]?.guild }.toSet()
+        val farmingLevel   = skillLevels["farming"]   ?: 1
+        val thievingLevel  = skillLevels["thieving"]  ?: 1
+        val fletchingLevel = skillLevels["fletching"] ?: 1
+        val smithingLevel  = skillLevels["smithing"]  ?: 1
+        val newIds = mutableListOf<String>()
+        for (guild in ALL_GUILDS) {
+            if (guild in guildsWithDailies) continue
+            val guildRep = flags.guildReputation[guild] ?: 0L
+            if (guildRep == 0L) continue
+            val effectiveLevel = maxOf(guildLevel(guild, guildRep, completedQuestIds), 1)
+            val eligible = gameData.guildDailyPool
+                .filter { it.guild == guild && effectiveLevel >= it.guildLevelMin && effectiveLevel <= it.guildLevelMax }
+                .filter { template ->
+                    when {
+                        template.guild == "farming" && template.type == "gather" -> {
+                            val cropLevel = gameData.crops[template.target]?.levelRequired ?: 1
+                            farmingLevel >= cropLevel
+                        }
+                        template.guild == "thieving" && template.type == "pickpocket" -> {
+                            val npcLevel = gameData.thievingNpcs[template.target]?.levelRequired ?: 1
+                            thievingLevel >= npcLevel
+                        }
+                        template.guild == "fletching" && template.type == "craft" -> {
+                            val recipeLevel = gameData.fletchingRecipes[template.target]?.levelRequired ?: 1
+                            if (fletchingLevel < recipeLevel) return@filter false
+                            if (template.target.endsWith("_arrow")) {
+                                val tipsKey   = template.target + "_tip"
+                                val tipsLevel = gameData.smithingRecipes[tipsKey]?.levelRequired ?: 1
+                                smithingLevel >= tipsLevel
+                            } else true
+                        }
+                        else -> true
+                    }
+                }
+                .shuffled(rng)
+            newIds.addAll(eligible.take(2).map { it.id })
+        }
+        return if (newIds.isEmpty()) flags else flags.copy(guildDailyIds = flags.guildDailyIds + newIds)
     }
 
     private suspend fun loadCompletedQuestIds(): Set<String> =
