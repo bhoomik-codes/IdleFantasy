@@ -1166,4 +1166,9 @@
     <string name="tower_entry_card_desc">Endless floors. How far can you climb?</string>
     <string name="tower_collect_prompt">Collect your tower run</string>
     <string name="tower_home_collect_hint">Open the Tower screen to collect this run</string>
+
+    <!-- ===== Plurals ===== -->
+    <plurals name="plural_level_ups">
+        <item quantity="other">%1$d kenaikan level</item>
+    </plurals>
 </resources>
