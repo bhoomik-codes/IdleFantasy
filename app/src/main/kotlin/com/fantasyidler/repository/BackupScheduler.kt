@@ -62,8 +62,13 @@ class BackupScheduler @Inject constructor(
     }
 
     fun cancel() {
-        buildPendingIntent(PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
-            ?.let { alarmManager.cancel(it) }
+        // FLAG_NO_CREATE returns null if no matching alarm is registered, so the
+        // cancel() call is safely skipped when there is nothing to cancel.
+        val intent = Intent(context, BackupAlarmReceiver::class.java)
+        PendingIntent.getBroadcast(
+            context, REQUEST_CODE, intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )?.let { alarmManager.cancel(it) }
     }
 
     suspend fun performBackup(playerRepo: PlayerRepository, frequency: String = ""): Boolean {
