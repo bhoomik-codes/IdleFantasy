@@ -777,10 +777,11 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val session = sessionRepo.getActiveSession() ?: return@launch
             val craftingSkills = setOf(Skills.SMITHING, Skills.COOKING, Skills.FLETCHING,
-                Skills.CRAFTING, Skills.HERBLORE, Skills.FIREMAKING, Skills.RUNECRAFTING, Skills.PRAYER)
+                Skills.CRAFTING, Skills.HERBLORE, Skills.FIREMAKING, Skills.RUNECRAFTING, Skills.PRAYER,
+                Skills.CONSTRUCTION)
             val frames = json.decodeFromString<List<SessionFrame>>(session.frames)
             val qty = if (session.skillName in craftingSkills)
-                frames.firstOrNull()?.kills ?: 0 else 0
+                frames.sumOf { it.kills } else 0
             val displayName = when (session.skillName) {
                 "combat"     -> gameData.dungeons[session.activityKey]?.displayName ?: session.activityKey
                 "boss"       -> gameData.bosses[session.activityKey]?.displayName ?: session.activityKey

@@ -256,7 +256,7 @@ class CraftingViewModel @Inject constructor(
                 outputStrengthBonus = r.strengthBonus ?: 0,
                 outputCombatStyle   = gameData.equipment[r.itemName]?.combatStyle,
                 category            = category,
-                tier                = tierFromKey(r.itemName),
+                tier                = if (isPlank) "" else tierFromKey(r.itemName),
             )
         }.sortedBy { it.levelRequired }
     }
