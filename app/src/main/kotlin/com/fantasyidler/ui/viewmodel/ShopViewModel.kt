@@ -417,7 +417,7 @@ class ShopViewModel @Inject constructor(
     fun openBuy(entry: ShopEntry) {
         val discount  = mercantileBuyDiscount()
         val discPrice = (entry.price * discount).toInt().coerceAtLeast(1)
-        val maxAffordable = (uiState.value.coins / discPrice).toInt().coerceAtLeast(1)
+        val maxAffordable = (uiState.value.coins / discPrice).coerceIn(1L, Int.MAX_VALUE.toLong()).toInt()
         _extra.update {
             it.copy(
                 transaction = ShopTransaction(

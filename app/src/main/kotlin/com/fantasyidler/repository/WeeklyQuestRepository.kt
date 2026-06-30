@@ -138,7 +138,9 @@ class WeeklyQuestRepository @Inject constructor(
         for (id in activeUnclaimed) {
             val quest = pool[id] ?: continue
             if (quest.type != type) continue
-            if (quest.type == "kill_enemy" && quest.target != target && quest.target != "any") continue
+            if (quest.type == "kill_enemy" && quest.target != target && quest.target != "any" &&
+                gameData.enemies[target]?.tags?.contains(quest.target) != true &&
+                gameData.bosses[target]?.tags?.contains(quest.target) != true) continue
             if (quest.type in listOf("gather", "craft") && quest.target != target && quest.target != "any") continue
             if (quest.type == "boss" && quest.target != target && quest.target != "any") continue
             if (quest.type == "slayer_task" && quest.target != target && quest.target != "any") continue

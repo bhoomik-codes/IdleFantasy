@@ -129,7 +129,9 @@ class DailyQuestRepository @Inject constructor(
         for (id in activeUnclaimed) {
             val quest = pool[id] ?: continue
             if (quest.type != type) continue
-            if (quest.type == "kill_enemy" && quest.target != target) continue
+            if (quest.type == "kill_enemy" && quest.target != target &&
+                gameData.enemies[target]?.tags?.contains(quest.target) != true &&
+                gameData.bosses[target]?.tags?.contains(quest.target) != true) continue
             if (quest.type in listOf("gather", "craft") && quest.target != target) continue
             val current = updated[id] ?: 0
             val max = quest.amount
