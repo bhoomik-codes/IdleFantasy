@@ -707,7 +707,11 @@ class PlayerRepository @Inject constructor(
      * Adds [petId] to the player's pet list if not already owned.
      * Returns true if the pet was newly added, false if already owned.
      */
-    suspend fun addPetIfNew(petId: String, boostPercent: Int = 0): Boolean {
+    suspend fun addPetIfNew(petId: String, boostPercent: Int = 0): Boolean = playerMutex.withLock {
+        addPetIfNewUnlocked(petId, boostPercent)
+    }
+
+    internal suspend fun addPetIfNewUnlocked(petId: String, boostPercent: Int = 0): Boolean {
         val player = getOrCreatePlayer()
         val pets: MutableList<OwnedPet> = json.decodeFromString(player.pets)
         if (pets.any { it.id == petId }) return false

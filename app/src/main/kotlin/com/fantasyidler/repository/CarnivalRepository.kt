@@ -20,12 +20,18 @@ class CarnivalRepository @Inject constructor(
     suspend fun ticketBalance(): Int =
         playerRepo.getInventory()["carnival_ticket"] ?: 0
 
-    /** Deduct [ticketCost] tickets and add [itemKey] to inventory. Returns false if insufficient tickets. */
+    /** Deduct [ticketCost] tickets and add [itemKey] to inventory (or pet list if it's a pet prize). Returns false if insufficient tickets. */
     suspend fun redeemForItem(itemKey: String, ticketCost: Int): Boolean = playerRepo.withLock {
         val inventory = playerRepo.getInventoryUnlocked()
         if ((inventory["carnival_ticket"] ?: 0) < ticketCost) return@withLock false
         playerRepo.consumeItemsUnlocked(mapOf("carnival_ticket" to ticketCost))
-        playerRepo.addItemUnlocked(itemKey, 1)
+        
+        val prize = prizes[itemKey]
+        if (prize?.type == "pet") {
+            playerRepo.addPetIfNewUnlocked(itemKey, gameData.pets[itemKey]?.boostPercent ?: 0)
+        } else {
+            playerRepo.addItemUnlocked(itemKey, 1)
+        }
         true
     }
 
