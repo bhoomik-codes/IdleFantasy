@@ -47,19 +47,20 @@ class QueuedSessionStarter @Inject constructor(
         // Mutex covers the full dequeue + session-start so concurrent callers (alarm
         // receiver, recoverActiveSession, collectSession) can't both pass the "no running
         // session" check and dequeue separate actions before either inserts a DB row.
-        mutex.withLock {
-            val current = sessionRepo.getActiveSession()
-            if (current != null && !current.completed) return false
-            val next = playerRepo.dequeueNextAction() ?: return false
-            return try {
-                startQueuedAction(next, backdateMs = backdateMs)
-                true
-            } catch (_: Exception) {
-                playerRepo.requeueActionAtFront(next)
-                false
+        return playerRepo.playerMutex.withLock {
+            mutex.withLock {
+                val current = sessionRepo.getActiveSession()
+                if (current != null && !current.completed) return@withLock false
+                val next = playerRepo.dequeueNextActionUnlocked() ?: return@withLock false
+                try {
+                    startQueuedAction(next, backdateMs = backdateMs)
+                    true
+                } catch (_: Exception) {
+                    playerRepo.requeueActionAtFrontUnlocked(next)
+                    false
+                }
             }
         }
-        return false
     }
 
     /**
@@ -95,7 +96,7 @@ class QueuedSessionStarter @Inject constructor(
      */
     suspend fun insertNextQueuedAsOffline(remainingMs: Long): Long {
         mutex.withLock {
-            val next = playerRepo.dequeueNextAction() ?: return 0L
+            val next = playerRepo.dequeueNextActionUnlocked() ?: return 0L
             val player = playerRepo.getOrCreatePlayer()
             val levels: Map<String, Int> = json.decodeFromString(player.skillLevels)
             val flags: PlayerFlags       = json.decodeFromString(player.flags)
@@ -103,14 +104,14 @@ class QueuedSessionStarter @Inject constructor(
             val agilityPrestige = flags.skillPrestige[Skills.AGILITY] ?: 0
             val duration = estimateDuration(next, agilityLevel, agilityPrestige)
             if (duration > remainingMs) {
-                playerRepo.requeueActionAtFront(next)
+                playerRepo.requeueActionAtFrontUnlocked(next)
                 return 0L
             }
             return try {
                 startQueuedAction(next, offline = true)
                 duration
             } catch (_: Exception) {
-                playerRepo.requeueActionAtFront(next)
+                playerRepo.requeueActionAtFrontUnlocked(next)
                 0L
             }
         }
@@ -242,7 +243,7 @@ class QueuedSessionStarter @Inject constructor(
                 val qty      = action.qty.takeIf { it > 0 } ?: return
                 val ashBonus = action.catalystKey?.let { ashRuneBonus(it) } ?: 0
                 val ashCost  = if (ashBonus > 0) (qty + 9) / 10 else 0
-                if (ashCost > 0) playerRepo.consumeItems(mapOf(action.catalystKey!! to ashCost))
+                if (ashCost > 0) playerRepo.consumeItemsUnlocked(mapOf(action.catalystKey!! to ashCost))
                 val currentXp = xpMap[Skills.RUNECRAFTING] ?: 0L
                 val rcPetDropKey = petDropKey(Skills.RUNECRAFTING)
                 val rcPetDropChance = petDropChance(Skills.RUNECRAFTING)
@@ -358,7 +359,7 @@ class QueuedSessionStarter @Inject constructor(
                 val qty = action.qty.takeIf { it > 0 } ?: return
                 val catalystKey = action.catalystKey
                 val outputKey   = if (catalystKey != null) "enhanced_${action.activityKey}" else action.activityKey
-                if (catalystKey != null) playerRepo.consumeItems(mapOf(catalystKey to qty))
+                if (catalystKey != null) playerRepo.consumeItemsUnlocked(mapOf(catalystKey to qty))
                 val frames    = buildCraftFrames(xpMap[Skills.HERBLORE] ?: 0L, qty, r.xpPerItem, r.outputQuantity, outputKey,
                     petDropKey = petDropKey(Skills.HERBLORE), petDropChance = petDropChance(Skills.HERBLORE))
                 val perItemMs = SkillSimulator.sessionDurationMs(agilityLevel, agilityPrestige) / 60
@@ -392,7 +393,7 @@ class QueuedSessionStarter @Inject constructor(
                 val bossArrowKey  = action.arrowsKey ?: flags.equippedArrows
                 val bossSpellName = action.spellName ?: flags.activeSpell
                 val bossPotionBonuses = if (action.potionKey != null && (inventory[action.potionKey] ?: 0) > 0) {
-                    playerRepo.consumeItems(mapOf(action.potionKey to 1))
+                    playerRepo.consumeItemsUnlocked(mapOf(action.potionKey to 1))
                     gameData.potionEffects[action.potionKey] ?: emptyMap()
                 } else emptyMap()
                 val bossWeaponSlot = action.weaponSlot
@@ -487,7 +488,7 @@ class QueuedSessionStarter @Inject constructor(
                 val combatArrowKey  = action.arrowsKey ?: flags.equippedArrows
                 val combatSpellName = action.spellName ?: flags.activeSpell
                 val combatPotBonuses = if (action.potionKey != null && (inventory[action.potionKey] ?: 0) > 0) {
-                    playerRepo.consumeItems(mapOf(action.potionKey to 1))
+                    playerRepo.consumeItemsUnlocked(mapOf(action.potionKey to 1))
                     gameData.potionEffects[action.potionKey] ?: emptyMap()
                 } else emptyMap()
                 val activeWeaponSlot = action.weaponSlot
@@ -544,7 +545,7 @@ class QueuedSessionStarter @Inject constructor(
                 if (combatStyle == "magic" && spell != null && totalKills > 0) {
                     val staffCoversRune = weapon?.infiniteRunes == "all" || weapon?.infiniteRunes == spell.runeType
                     if (!staffCoversRune)
-                        playerRepo.consumeItems(mapOf(spell.runeType to totalKills * spell.runeCost))
+                        playerRepo.consumeItemsUnlocked(mapOf(spell.runeType to totalKills * spell.runeCost))
                 }
                 startSession(action, result, offline, backdateMs)
             }
@@ -605,7 +606,7 @@ class QueuedSessionStarter @Inject constructor(
                 if (combatStyle == "magic" && spell != null && totalKills > 0) {
                     val staffCoversRune = weapon?.infiniteRunes == "all" || weapon?.infiniteRunes == spell.runeType
                     if (!staffCoversRune)
-                        playerRepo.consumeItems(mapOf(spell.runeType to totalKills * spell.runeCost))
+                        playerRepo.consumeItemsUnlocked(mapOf(spell.runeType to totalKills * spell.runeCost))
                 }
                 sessionRepo.startSession(
                     skillName         = "tower",
