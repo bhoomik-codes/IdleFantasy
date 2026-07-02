@@ -201,7 +201,7 @@ class GuildRepository @Inject constructor(
         val available = inventory[t.target] ?: 0
         if (available == 0) return 0
         val toConsume = minOf(needed, available)
-        playerRepo.consumeItems(mapOf(t.target to toConsume))
+        playerRepo.consumeItemsUnlocked(mapOf(t.target to toConsume))
         val newProgress = flags.guildDailyProgress.toMutableMap()
         newProgress[templateId] = current + toConsume
         playerRepo.updateFlagsUnlocked(flags.copy(guildDailyProgress = newProgress))
