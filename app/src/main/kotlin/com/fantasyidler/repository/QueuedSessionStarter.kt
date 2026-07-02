@@ -472,11 +472,12 @@ class QueuedSessionStarter @Inject constructor(
                     else               -> 1.0f
                 }
                 val result = SkillingDungeonSimulator.simulate(
-                    dungeonKey     = dungeonKey,
-                    dungeon        = dungeon,
-                    startXp        = xpMap[dungeon.skill] ?: 0L,
-                    agilityLevel   = agilityLevel,
-                    toolEfficiency = toolEfficiency,
+                    dungeonKey      = dungeonKey,
+                    dungeon         = dungeon,
+                    startXp         = xpMap[dungeon.skill] ?: 0L,
+                    agilityLevel    = agilityLevel,
+                    agilityPrestige = flags.skillPrestige[Skills.AGILITY] ?: 0,
+                    toolEfficiency  = toolEfficiency,
                 )
                 startSession(action, result, offline, backdateMs)
             }
@@ -536,6 +537,7 @@ class QueuedSessionStarter @Inject constructor(
                     arrowStrengthBonus  = arrowBonus,
                     spellMaxHit         = (spell?.maxHit ?: 0) + totalMagicDmgBonus,
                     agilityLevel        = agilityLevel,
+                    agilityPrestige     = pm[Skills.AGILITY] ?: 0,
                     petBoostPct         = combatPetBoost(player.pets),
                     equippedFood        = availableFood,
                     foodHealValues      = gameData.foodHealValues,
@@ -597,6 +599,7 @@ class QueuedSessionStarter @Inject constructor(
                     arrowStrengthBonus  = arrowBonus,
                     spellMaxHit         = (spell?.maxHit ?: 0) + totalMagicDmgBonus,
                     agilityLevel        = agilityLevel,
+                    agilityPrestige     = pm[Skills.AGILITY] ?: 0,
                     petBoostPct         = combatPetBoost(player.pets),
                     equippedFood        = availableFood,
                     foodHealValues      = gameData.foodHealValues,
@@ -631,6 +634,7 @@ class QueuedSessionStarter @Inject constructor(
                     relevantSkillLevel = relevantSkillLevel,
                     petBoostPct        = gatheringPetBoost(player.pets, CarnivalSimulator.relevantSkill(action.activityKey)),
                     agilityLevel       = agilityLevel,
+                    agilityPrestige    = flags.skillPrestige[Skills.AGILITY] ?: 0,
                     fairgroundsTier    = flags.townBuildingTiers["fairgrounds"] ?: 0,
                 )
                 startSession(action, result, offline, backdateMs)

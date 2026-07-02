@@ -210,12 +210,13 @@ class CarnivalViewModel @Inject constructor(
         viewModelScope.launch {
             val player = playerRepo.getOrCreatePlayer()
             val agility = (json.decodeFromString<Map<String, Int>>(player.skillLevels))[Skills.AGILITY] ?: 1
+            val carnivalFlags: PlayerFlags = json.decodeFromString(player.flags)
             val enqueued = playerRepo.enqueueAction(
                 QueuedAction(
                     skillName           = "carnival",
                     activityKey         = activityKey,
                     skillDisplayName    = displayName,
-                    estimatedDurationMs = SkillSimulator.sessionDurationMs(agility),
+                    estimatedDurationMs = SkillSimulator.sessionDurationMs(agility, carnivalFlags.skillPrestige[Skills.AGILITY] ?: 0),
                 )
             )
             if (enqueued) queuedSessionStarter.startNextQueued()
@@ -480,7 +481,14 @@ class CarnivalViewModel @Inject constructor(
         if (_extra.value.higherLowerState !is ActiveGameState.Ready) return
         val diff = _extra.value.higherLowerDifficulty
         val totalRounds = if (diff == Difficulty.HARD) 7 else 5
-        val numbers = List(totalRounds + 1) { Random.nextInt(1, 11) }
+        val numbers = buildList {
+            add(Random.nextInt(1, 11))
+            repeat(totalRounds) {
+                var n: Int
+                do { n = Random.nextInt(1, 11) } while (n == last())
+                add(n)
+            }
+        }
         _extra.update { it.copy(higherLowerState = ActiveGameState.HigherOrLowerPlaying(numbers, 0, 0)) }
     }
 

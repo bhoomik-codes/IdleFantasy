@@ -318,6 +318,7 @@ class WorkerQueuedSessionStarter @Inject constructor(
                     arrowStrengthBonus  = arrowBonus,
                     spellMaxHit         = (spell?.maxHit ?: 0) + totalMagicDmgBonus,
                     agilityLevel        = agilityLevel,
+                    agilityPrestige     = flags.skillPrestige[Skills.AGILITY] ?: 0,
                     petBoostPct         = 0,
                     equippedFood        = availableFood,
                     foodHealValues      = gameData.foodHealValues,

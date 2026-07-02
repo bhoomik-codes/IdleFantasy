@@ -192,7 +192,7 @@ class TowerViewModel @Inject constructor(
                         skillName           = "tower",
                         activityKey         = "tower_floor_$nextFloor",
                         skillDisplayName    = "Infinite Tower: Floor $nextFloor",
-                        estimatedDurationMs = SkillSimulator.sessionDurationMs(agility),
+                        estimatedDurationMs = SkillSimulator.sessionDurationMs(agility, flags.skillPrestige[Skills.AGILITY] ?: 0),
                     )
                 )
                 if (enqueued) queuedSessionStarter.startNextQueued()
@@ -284,6 +284,7 @@ class TowerViewModel @Inject constructor(
                     arrowStrengthBonus  = arrowStrBonus + totalRangedStrBonus,
                     spellMaxHit         = (selectedSpell?.maxHit ?: 0) + totalMagicDmgBonus,
                     agilityLevel        = levels[Skills.AGILITY] ?: 1,
+                    agilityPrestige     = prestigeMap[Skills.AGILITY] ?: 0,
                     petBoostPct         = petBoostFor(player.pets),
                     equippedFood        = availableFood,
                     foodHealValues      = foodHeal,
